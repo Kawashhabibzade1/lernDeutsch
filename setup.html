@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeutschPath — Setup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0d1117;
+      --card:    #161b22;
+      --border:  #30363d;
+      --text:    #e6edf3;
+      --muted:   #8b949e;
+      --blue:    #58a6ff;
+      --green:   #3fb950;
+      --yellow:  #d29922;
+      --red:     #f85149;
+      --purple:  #a371f7;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    }
+
+    /* ── Logo ── */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-flag { font-size: 32px; line-height: 1; }
+    .logo-text h1 { font-size: 20px; font-weight: 700; }
+    .logo-text p  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Phases ── */
+    .phase { display: none; animation: fadeIn 0.35s ease; }
+    .phase.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* ── Phase 1: Loading ── */
+    .phase-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+    .phase-desc  { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      transition: width 0.5s ease;
+    }
+    .progress-fill.pulse {
+      width: 35%;
+      animation: slide 1.6s ease-in-out infinite;
+    }
+    @keyframes slide {
+      0%   { transform: translateX(-150%); }
+      100% { transform: translateX(380%);  }
+    }
+
+    .checklist { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: border-color 0.4s, background 0.4s;
+    }
+    .check-item.done {
+      border-color: rgba(63,185,80,0.35);
+      background: rgba(63,185,80,0.06);
+    }
+
+    .check-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 13px; font-weight: 700;
+      transition: all 0.3s;
+    }
+    .check-icon.pending {
+      background: rgba(139,148,158,0.12);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .check-icon.spinning {
+      border: 2.5px solid var(--blue);
+      border-top-color: transparent;
+      animation: spin 0.75s linear infinite;
+    }
+    .check-icon.done {
+      background: rgba(63,185,80,0.2);
+      color: var(--green);
+      font-size: 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .check-text strong { display: block; font-size: 14px; font-weight: 500; }
+    .check-text span   { font-size: 12px; color: var(--muted); }
+
+    .meta {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--muted);
+      padding-top: 16px; margin-top: 4px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Phase 2: Configure ── */
+    .field-label {
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--muted); margin-bottom: 8px;
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 8px;
+    }
+    .text-input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(88,166,255,0.12);
+    }
+    .text-input::placeholder { color: var(--muted); }
+
+    .field-hint {
+      font-size: 13px; color: var(--muted);
+      margin-bottom: 22px; line-height: 1.5;
+    }
+    .field-hint a { color: var(--blue); text-decoration: none; }
+    .field-hint a:hover { text-decoration: underline; }
+
+    .toast {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .toast.error   { background: rgba(248,81,73,0.1);  border: 1px solid rgba(248,81,73,0.3);  color: var(--red);   }
+    .toast.success { background: rgba(63,185,80,0.1);  border: 1px solid rgba(63,185,80,0.3);  color: var(--green); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 13px 20px;
+      border-radius: 10px; border: none;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: all 0.18s; line-height: 1;
+    }
+    .btn + .btn { margin-top: 8px; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    .btn-primary {
+      background: var(--blue); color: #0d1117;
+    }
+    .btn-primary:hover:not(:disabled) { background: #79b8ff; transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+
+    .btn-success {
+      background: var(--green); color: #0d1117;
+      font-size: 15px; padding: 14px 20px;
+    }
+    .btn-success:hover { background: #56d364; transform: translateY(-1px); }
+
+    /* ── Phase 3: Done ── */
+    .done-circle {
+      width: 76px; height: 76px;
+      background: rgba(63,185,80,0.14);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 24px;
+    }
+    .done-title { font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+    .done-sub   { font-size: 14px; color: var(--muted); text-align: center; margin-bottom: 28px; line-height: 1.5; }
+
+    /* ── Install path box ── */
+    .path-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+    }
+    .path-box label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .path-box code  { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: var(--text); word-break: break-all; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-flag">🇩🇪</div>
+    <div class="logo-text">
+      <h1>DeutschPath</h1>
+      <p>Setup Wizard — German Learning Platform</p>
+    </div>
+  </div>
+
+  <!-- ── Phase 1: Waiting for servers ── -->
+  <div id="phase-loading" class="phase active">
+    <p class="phase-title">Starting DeutschPath...</p>
+    <p class="phase-desc">The backend and frontend servers are launching in the background. This usually takes 15–40 seconds on first run.</p>
+
+    <div class="progress-bar">
+      <div class="progress-fill pulse" id="progress-fill"></div>
+    </div>
+
+    <div class="checklist">
+      <div class="check-item" id="item-backend">
+        <div class="check-icon spinning" id="icon-backend"></div>
+        <div class="check-text">
+          <strong>Backend API</strong>
+          <span id="lbl-backend">Connecting to localhost:8000…</span>
+        </div>
+      </div>
+      <div class="check-item" id="item-frontend">
+        <div class="check-icon pending" id="icon-frontend">2</div>
+        <div class="check-text">
+          <strong>Frontend App</strong>
+          <span id="lbl-frontend">Waiting for backend first…</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="meta">
+      <span id="elapsed">0s elapsed</span>
+      <span>localhost:8000 · localhost:3000</span>
+    </div>
+  </div>
+
+  <!-- ── Phase 2: API key setup ── -->
+  <div id="phase-configure" class="phase">
+    <p class="phase-title">Add your Gemini API key</p>
+    <p class="phase-desc">DeutschPath uses Google Gemini AI for word analysis, grammar practice, and conversation. Your free key enables all features.</p>
+
+    <div class="field-label">Gemini API Key</div>
+    <input type="text" class="text-input" id="api-input"
+           placeholder="AIzaSy…" autocomplete="off" spellcheck="false">
+    <p class="field-hint">
+      Get a free key (takes ~1 min) at
+      <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>
+      — no billing required.
+    </p>
+
+    <div class="toast error"   id="err-toast"></div>
+    <div class="toast success" id="ok-toast">Key saved! Launching app…</div>
+
+    <button class="btn btn-primary" id="save-btn" onclick="saveKey()">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/>
+      </svg>
+      Save &amp; Launch App
+    </button>
+    <button class="btn btn-ghost" onclick="skipKey()">
+      Skip for now — I'll add it in Settings
+    </button>
+  </div>
+
+  <!-- ── Phase 3: Done ── -->
+  <div id="phase-done" class="phase">
+    <div class="done-circle">✓</div>
+    <p class="done-title">You're all set!</p>
+    <p class="done-sub" id="done-sub">
+      DeutschPath is running. Opening the app in 3 seconds…
+    </p>
+
+    <div class="path-box" id="path-box" style="display:none">
+      <label>Install location</label>
+      <code id="path-display"></code>
+    </div>
+
+    <a href="http://localhost:3000" class="btn btn-success" id="launch-btn">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"/>
+      </svg>
+      Open DeutschPath
+    </a>
+
+    <div class="meta" style="margin-top:20px">
+      <a href="http://localhost:8000/docs" target="_blank" style="color:var(--muted);text-decoration:none">API docs</a>
+      <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--muted);text-decoration:none">AI Studio</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BACKEND  = 'http://localhost:8000';
+  const FRONTEND = 'http://localhost:3000';
+
+  // ── Show install path ───────────────────────────────────────────────────────
+  const m = window.location.href.match(/^file:\/\/(.+)\/setup\.html(\?.*)?$/i);
+  if (m) {
+    const dir = decodeURIComponent(m[1]);
+    document.getElementById('path-display').textContent = dir;
+    document.getElementById('path-box').style.display = 'block';
+  }
+
+  // ── Elapsed timer ───────────────────────────────────────────────────────────
+  const t0 = Date.now();
+  setInterval(() => {
+    document.getElementById('elapsed').textContent =
+      Math.floor((Date.now() - t0) / 1000) + 's elapsed';
+  }, 1000);
+
+  // ── Utilities ───────────────────────────────────────────────────────────────
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function showPhase(id) {
+    document.querySelectorAll('.phase').forEach(el => el.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function setIcon(id, state) {
+    const el = document.getElementById('icon-' + id);
+    el.className = 'check-icon ' + state;
+    el.textContent = state === 'done' ? '✓' : (state === 'spinning' ? '' : (id === 'backend' ? '1' : '2'));
+  }
+
+  function setLbl(id, txt) {
+    document.getElementById('lbl-' + id).textContent = txt;
+  }
+
+  function markDone(id, txt) {
+    document.getElementById('item-' + id).classList.add('done');
+    setIcon(id, 'done');
+    setLbl(id, txt);
+  }
+
+  // ── Server polling ──────────────────────────────────────────────────────────
+  async function isBackendUp() {
+    try {
+      const r = await fetch(BACKEND + '/settings', { cache: 'no-store' });
+      return r.status < 500;
+    } catch { return false; }
+  }
+
+  async function isFrontendUp() {
+    try {
+      await fetch(FRONTEND, { mode: 'no-cors', cache: 'no-store' });
+      return true;
+    } catch { return false; }
+  }
+
+  async function poll() {
+    // Wait for backend
+    while (!(await isBackendUp())) await sleep(2000);
+    markDone('backend', 'Ready — localhost:8000');
+
+    // Start frontend check
+    setIcon('frontend', 'spinning');
+    setLbl('frontend', 'Connecting to localhost:3000…');
+
+    // Wait for frontend
+    while (!(await isFrontendUp())) await sleep(2000);
+    markDone('frontend', 'Ready — localhost:3000');
+
+    // Complete progress bar
+    const bar = document.getElementById('progress-fill');
+    bar.classList.remove('pulse');
+    bar.style.width = '100%';
+
+    await sleep(500);
+
+    // Check if API key already set — skip configure if so
+    try {
+      const r = await fetch(BACKEND + '/settings', { cache: 'no-store' });
+      const d = await r.json();
+      if (d.gemini_key_set) {
+        showPhase('phase-done');
+        autoLaunch();
+        return;
+      }
+    } catch {}
+
+    showPhase('phase-configure');
+  }
+
+  // ── Save API key ────────────────────────────────────────────────────────────
+  async function saveKey() {
+    const key = document.getElementById('api-input').value.trim();
+    const err = document.getElementById('err-toast');
+    const ok  = document.getElementById('ok-toast');
+    const btn = document.getElementById('save-btn');
+
+    err.style.display = 'none';
+    ok.style.display  = 'none';
+
+    if (!key) {
+      err.textContent = 'Please enter your API key.';
+      err.style.display = 'block';
+      return;
+    }
+    if (!key.startsWith('AI')) {
+      err.textContent = 'Gemini API keys start with "AIzaSy…". Please check your key and try again.';
+      err.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      const r = await fetch(BACKEND + '/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gemini_api_key: key }),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      ok.style.display = 'block';
+      await sleep(900);
+      showPhase('phase-done');
+      autoLaunch();
+    } catch (e) {
+      err.textContent = 'Could not save key (' + e.message + '). You can add it in Settings after launching.';
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>Save &amp; Launch App';
+    }
+  }
+
+  function skipKey() {
+    showPhase('phase-done');
+    autoLaunch();
+  }
+
+  // ── Auto-launch countdown ───────────────────────────────────────────────────
+  function autoLaunch() {
+    let n = 3;
+    const sub = document.getElementById('done-sub');
+    const timer = setInterval(() => {
+      n--;
+      if (n <= 0) {
+        clearInterval(timer);
+        window.location.href = FRONTEND;
+      } else {
+        sub.textContent = 'DeutschPath is running. Opening the app in ' + n + ' second' + (n !== 1 ? 's' : '') + '…';
+      }
+    }, 1000);
+  }
+
+  // Enter key in API input
+  document.getElementById('api-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveKey();
+  });
+
+  // Start
+  poll();
+</script>
+</body>
+</html>

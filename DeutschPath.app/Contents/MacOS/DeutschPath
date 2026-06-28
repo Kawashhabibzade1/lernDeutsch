@@ -1,0 +1,25 @@
+#!/bin/bash
+# Add pyenv and Homebrew to PATH (these aren't loaded when macOS launches apps)
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+# Resolve project root (3 levels up from DeutschPath.app/Contents/MacOS/)
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+
+# Find Python 3.10+
+PYTHON=""
+for cmd in python3.13 python3.12 python3.11 python3.10 python3; do
+  if command -v "$cmd" &>/dev/null; then
+    if "$cmd" -c "import sys; exit(0 if sys.version_info>=(3,10) else 1)" 2>/dev/null; then
+      PYTHON="$cmd"
+      break
+    fi
+  fi
+done
+
+if [ -z "$PYTHON" ]; then
+  osascript -e 'display dialog "Python 3.10+ not found.\n\nInstall it from python.org and try again." buttons {"OK"} default button "OK" with icon stop with title "DeutschPath"'
+  exit 1
+fi
+
+exec "$PYTHON" "$ROOT/launcher.py"
