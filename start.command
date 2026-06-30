@@ -9,6 +9,9 @@ BACKEND="$DIR/backend"
 FRONTEND="$DIR/frontend"
 LOG="$DIR/setup.log"
 
+# Remove macOS quarantine flag from the .app so it opens normally after this first run
+xattr -cr "$DIR/DeutschPath.app" 2>/dev/null || true
+
 # ── ANSI colours ──────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; NC='\033[0m'

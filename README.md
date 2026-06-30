@@ -157,11 +157,8 @@ No installation wizard. Just double-click.
 
 **🍎 macOS**
 
-1. Double-click **`DeutschPath.app`**
-2. **First launch:** macOS will block it — right-click → **Open** → **Open**
-3. Requires **Python 3.10+** and **Node.js 18+** pre-installed
-   ([python.org](https://www.python.org/downloads/) · [nodejs.org](https://nodejs.org/en/download/))
-4. All pip/npm packages install automatically on first run (~1–2 min)
+1. **First time:** double-click **`start.command`** — automatically installs Python, Node.js, and all packages, then launches the app (~1–2 min)
+2. **After setup:** double-click **`DeutschPath.app`**
 
 </td>
 <td width="50%">
