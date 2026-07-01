@@ -374,9 +374,8 @@ DeutschPath/
 
 Contributions are welcome. For non-trivial changes, please **open an issue first** to discuss what you'd like to change — this avoids wasted effort if the direction doesn't fit the project.
 
-You can also reach out directly via the **Contact page** inside the app, or by email at **saber.jelodari@uni-bayreuth.de**.
+You can also reach out directly via the **Contact page** inside the app, or by email at **saber.jelodarii@gmail.com**.
 
-There is no automated test suite at present — the project is a single-user local app and relies on manual testing. A PR that adds one is very welcome.
 
 ---
 
