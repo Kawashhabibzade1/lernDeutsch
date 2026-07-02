@@ -167,6 +167,11 @@ async def chat_with_scenario(
         for l in translation_languages
     )
 
+    correction_exp_fields = "\n".join(
+        f'      "{l["code"]}": "One-sentence {l["name"]} explanation of the correction, or null if no error"'
+        for l in translation_languages
+    )
+
     history_text = "\n".join(
         f"{'User' if m['role'] == 'user' else 'Agent'}: {m['content']}"
         for m in conversation_history[-10:]
@@ -192,8 +197,8 @@ User: "{user_message}"
 
 CORRECTION RULES (always apply, no exceptions):
 - Carefully check the user's message for any German errors: grammar, case endings, word order, vocabulary, spelling.
-- If there are errors: set "correction" to the fully corrected German sentence, "correction_explanation_en" to a one-sentence English explanation of what was wrong and why, and "correction_explanation_fa" to the same in Persian (فارسی).
-- If the message is correct German: set all three correction fields to null.
+- If there are errors: set "correction" to the fully corrected German sentence, and fill each language in "correction_explanations" with a one-sentence explanation in that language of what was wrong and why.
+- If the message is correct German: set "correction" to null and all values in "correction_explanations" to null.
 - Never skip the correction check — even small errors must be caught.
 
 Return ONLY valid JSON:
@@ -203,12 +208,15 @@ Return ONLY valid JSON:
 {trans_fields}
   }},
   "correction": null or "The fully corrected German sentence",
-  "correction_explanation_fa": null or "توضیح فارسی اشتباه و دلیل صحیح آن",
-  "correction_explanation_en": null or "One sentence: what was wrong and why",
+  "correction_explanations": {{
+{correction_exp_fields}
+  }},
   "vocabulary_used": ["key", "German", "words"],
-  "scenario_complete": false
+  "scenario_complete": false,
+  "suggestions": ["Short phrase 1", "Short phrase 2", "Short phrase 3"]
 }}
-Set scenario_complete true only when the user has achieved the goal."""
+Set scenario_complete true only when the user has achieved the goal.
+suggestions: 2-3 short natural German phrases (4-8 words each) the user could plausibly say next, fitting their {user_level} level. Ready-to-send, no placeholders."""
     return _parse_json(_call(prompt))
 
 

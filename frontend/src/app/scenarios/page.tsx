@@ -10,6 +10,29 @@ import { clsx } from "clsx";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
+const SUBJECT_PHRASES: Record<string, string[]> = {
+  "Food & Drink": ["Ich hätte gerne...", "Was empfehlen Sie?", "Die Rechnung, bitte."],
+  "Restaurant": ["Einen Tisch für zwei, bitte.", "Was ist die Tagesempfehlung?", "Ich hätte gerne..."],
+  "Shopping": ["Was kostet das?", "Haben Sie das in einer anderen Größe?", "Ich suche..."],
+  "Travel": ["Wie komme ich zum...?", "Einen Fahrschein nach..., bitte.", "Wann fährt der nächste Zug?"],
+  "Health": ["Ich fühle mich nicht wohl.", "Ich hätte gerne einen Termin.", "Was sind Ihre Öffnungszeiten?"],
+  "Work": ["Ich habe dazu eine Frage.", "Könnten Sie mir bitte helfen?", "Bis wann ist die Deadline?"],
+  "Housing": ["Ich interessiere mich für die Wohnung.", "Wie hoch ist die Miete?", "Ist das inklusive Nebenkosten?"],
+  "Education": ["Könnten Sie das bitte erklären?", "Wann ist die nächste Prüfung?", "Ich verstehe das leider nicht."],
+  "Social": ["Schön, Sie kennenzulernen!", "Was machen Sie in Ihrer Freizeit?", "Haben Sie eine Empfehlung?"],
+  "Banking": ["Ich möchte ein Konto eröffnen.", "Wie hoch sind die Gebühren?", "Könnten Sie mir helfen?"],
+};
+const FALLBACK_PHRASES: Record<string, string[]> = {
+  Informal: ["Hallo! Wie geht's?", "Könntest du mir helfen?", "Das klingt gut!"],
+  Formal: ["Guten Tag.", "Entschuldigung, ich hätte eine Frage.", "Könnten Sie mir bitte helfen?"],
+  Professional: ["Guten Morgen.", "Ich wollte mich kurz erkundigen.", "Haben Sie einen Moment Zeit?"],
+};
+
+function getKeyPhrases(scenario: any): string[] {
+  if (scenario.subject && SUBJECT_PHRASES[scenario.subject]) return SUBJECT_PHRASES[scenario.subject];
+  return FALLBACK_PHRASES[scenario.scenario_type] || ["Hallo!", "Könnten Sie mir helfen?", "Danke schön!"];
+}
+
 function stripForTTS(text: string): string {
   return text
     .replace(/#{1,3}\s/g, "")
@@ -47,6 +70,8 @@ export default function ScenariosPage() {
   const [vocabBtn, setVocabBtn] = useState<ChatVocabBtn | null>(null);
   const [vocabSaving, setVocabSaving] = useState(false);
   const [vocabToast, setVocabToast] = useState("");
+  const [phase, setPhase] = useState<"list" | "briefing" | "chat">("list");
+  const [lastSuggestions, setLastSuggestions] = useState<string[]>([]);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
   const [ttsLoading, setTtsLoading] = useState<string | null>(null);
@@ -62,9 +87,9 @@ export default function ScenariosPage() {
 
   // Track whether there's an active user conversation
   useEffect(() => {
-    const active = selected != null && messages.some((m) => m.role === "user");
+    const active = phase === "chat" && messages.some((m) => m.role === "user");
     setHasPendingChat(active);
-  }, [messages, selected]);
+  }, [messages, phase]);
 
   // Clear on unmount
   useEffect(() => {
@@ -117,16 +142,23 @@ export default function ScenariosPage() {
 
   const startScenario = (scenario: any) => {
     setSelected(scenario);
+    setPhase("briefing");
+  };
+
+  const beginChat = () => {
+    if (!selected) return;
+    const opening = selected.opening_message || "Guten Tag!";
     setSessionId(null);
-    const opening = scenario.opening_message || "Guten Tag!";
+    setLastSuggestions([]);
     setMessages([{
       role: "system",
-      text: `You are now chatting with: ${scenario.persona}`,
-      emoji: scenario.avatar_emoji,
+      text: `You are now chatting with: ${selected.persona}`,
+      emoji: selected.avatar_emoji,
     }, {
       role: "agent",
-      text: `${scenario.avatar_emoji} ${opening}`,
+      text: `${selected.avatar_emoji} ${opening}`,
     }]);
+    setPhase("chat");
   };
 
   const stopAudio = () => {
@@ -201,10 +233,10 @@ export default function ScenariosPage() {
         text: res.agent_response,
         response_translations: res.response_translations || {},
         correction: res.correction,
-        correction_fa: res.correction_explanation_fa,
-        correction_en: res.correction_explanation_en,
+        correction_explanations: res.correction_explanations || {},
         vocab: res.vocabulary_used,
       }]);
+      setLastSuggestions(res.suggestions || []);
 
       if (autoPlay) handleSpeak(res.agent_response);
     } catch (err) {
@@ -225,7 +257,7 @@ export default function ScenariosPage() {
     );
   }
 
-  if (!selected) {
+  if (phase === "list") {
     const subjects = ["all", ...Array.from(new Set(scenarios.map((s) => s.subject).filter(Boolean))).sort()];
     const types = ["all", "Informal", "Formal", "Professional"];
 
@@ -323,11 +355,71 @@ export default function ScenariosPage() {
     );
   }
 
+  if (phase === "briefing" && selected) {
+    const phrases = getKeyPhrases(selected);
+    return (
+      <div className="max-w-xl mx-auto px-4 py-8">
+        <button
+          onClick={() => { setSelected(null); setPhase("list"); }}
+          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 mb-6 transition-colors"
+        >
+          <ArrowLeft size={15} /> Back to scenarios
+        </button>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-4xl">{selected.avatar_emoji}</span>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">{selected.name}</h2>
+                <LevelBadge level={selected.cefr_level} />
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{selected.persona}</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{selected.description}</p>
+
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl px-4 py-3 mb-5">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-0.5">Your goal</p>
+            <p className="text-sm text-amber-800 dark:text-amber-300">{selected.goal}</p>
+          </div>
+
+          <div className="mb-6">
+            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+              Useful phrases to get started
+            </p>
+            <div className="flex flex-col gap-2">
+              {phrases.map((phrase, i) => (
+                <div key={i} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-2">
+                  <span className="text-brand-500 dark:text-brand-400 font-bold text-xs w-4 shrink-0">{i + 1}</span>
+                  <span className="text-sm text-slate-700 dark:text-slate-200 font-medium">{phrase}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={beginChat}
+            className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold transition-colors"
+          >
+            Start Conversation
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const goBack = () => {
+    if (phase === "briefing") {
+      setSelected(null);
+      setPhase("list");
+      return;
+    }
     if (hasPendingChat) {
       setShowLeaveConfirm(true);
     } else {
       setSelected(null);
+      setPhase("list");
     }
   };
 
@@ -335,7 +427,7 @@ export default function ScenariosPage() {
     <div className="flex flex-col h-[calc(100vh-64px)] max-w-3xl mx-auto">
       {showLeaveConfirm && (
         <ConfirmLeaveDialog
-          onConfirm={() => { setHasPendingChat(false); setSelected(null); setShowLeaveConfirm(false); }}
+          onConfirm={() => { setHasPendingChat(false); setSelected(null); setPhase("list"); setShowLeaveConfirm(false); }}
           onCancel={() => setShowLeaveConfirm(false)}
         />
       )}
@@ -468,8 +560,14 @@ export default function ScenariosPage() {
                   <div className="pt-2 border-t border-red-100 dark:border-red-900/40">
                     <p className="text-xs font-semibold text-red-500">Correction:</p>
                     <p className="text-xs text-red-600 italic">{msg.correction}</p>
-                    {msg.correction_en && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{msg.correction_en}</p>}
-                    {msg.correction_fa && <p className="text-xs text-slate-500 dark:text-slate-400 rtl text-right">{msg.correction_fa}</p>}
+                    {msg.correction_explanations && langs.map((lang) => {
+                      const exp = msg.correction_explanations?.[lang.code];
+                      return exp ? (
+                        <p key={lang.code} className="text-xs text-slate-500 dark:text-slate-400 mt-0.5" dir={lang.rtl ? "rtl" : "ltr"}>
+                          {exp}
+                        </p>
+                      ) : null;
+                    })}
                   </div>
                 )}
 
@@ -502,6 +600,19 @@ export default function ScenariosPage() {
 
       {/* Input */}
       <div className="px-4 py-3 border-t border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700">
+        {lastSuggestions.length > 0 && !sending && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {lastSuggestions.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => setInput(s)}
+                className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-300 text-slate-600 border border-slate-200 rounded-full transition-colors dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-brand-900/30 dark:hover:text-brand-300"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <button
             onClick={listening ? stopListening : startListening}
