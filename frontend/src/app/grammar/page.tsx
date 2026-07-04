@@ -1192,7 +1192,7 @@ export default function GrammarPage() {
       {/* ── Roadmap sidebar ── */}
       <div className={clsx(
         "flex flex-col overflow-y-auto bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all shrink-0",
-        selectedRule ? "w-72" : "w-full max-w-2xl mx-auto border-r-0"
+        selectedRule ? "hidden md:flex w-72" : "w-full max-w-2xl mx-auto border-r-0"
       )}>
         <div className="p-5">
           {!selectedRule && (

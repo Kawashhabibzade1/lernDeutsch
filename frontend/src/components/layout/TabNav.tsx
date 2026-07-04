@@ -97,9 +97,12 @@ export function TabNav() {
       <nav className="fixed top-0 inset-x-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-50 flex items-center px-4 gap-1 transition-colors">
 
         {/* Brand + status dot */}
-        <div className="flex items-center gap-2 mr-4 shrink-0">
-          <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-slate-900 via-red-600 to-yellow-500 dark:from-slate-100 dark:via-red-400 dark:to-yellow-400 bg-clip-text text-transparent select-none">
+        <div className="flex items-center gap-2 mr-2 md:mr-4 shrink-0">
+          <span className="hidden sm:inline font-bold text-lg tracking-tight bg-gradient-to-r from-slate-900 via-red-600 to-yellow-500 dark:from-slate-100 dark:via-red-400 dark:to-yellow-400 bg-clip-text text-transparent select-none">
             DeutschPath
+          </span>
+          <span className="sm:hidden font-bold text-base tracking-tight bg-gradient-to-r from-slate-900 via-red-600 to-yellow-500 dark:from-slate-100 dark:via-red-400 dark:to-yellow-400 bg-clip-text text-transparent select-none">
+            DP
           </span>
           <span
             className={clsx("w-2 h-2 rounded-full shrink-0", statusDot[backendStatus])}
@@ -123,7 +126,7 @@ export function TabNav() {
                 )}
               >
                 <Icon size={16} />
-                {label}
+                <span className="hidden md:inline">{label}</span>
               </button>
             );
           })}

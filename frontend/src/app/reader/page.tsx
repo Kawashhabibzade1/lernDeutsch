@@ -14,7 +14,7 @@ import { listBooks, deleteBook, getPageText, analyzePage, ocrRegionsPDF } from "
 import { useAppStore } from "@/src/lib/store";
 import {
   BookOpen, ChevronLeft, ZoomIn, ZoomOut, Image, PanelRight, PanelRightClose,
-  Trash2, Loader2, Sparkles, X, Plus,
+  Trash2, Loader2, Sparkles, X, Plus, Menu,
 } from "lucide-react";
 
 const RTL_RE = /[֐-׿؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/;
@@ -85,6 +85,7 @@ export default function ReaderPage() {
   const [fileUrlSuffix, setFileUrlSuffix] = useState("");
   const [showUpload, setShowUpload] = useState(false);
   const [showPanel, setShowPanel] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [panelWidth, setPanelWidth] = useState(35); // % of the content area
   const [loading, setLoading] = useState(true);
   const [imgScale, setImgScale] = useState(1.0);
@@ -268,24 +269,36 @@ export default function ReaderPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100vh-64px)] relative">
+      {/* Mobile backdrop for sidebar */}
+      {showSidebar && (
+        <div
+          className="md:hidden fixed inset-0 z-10 bg-slate-900/50"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
       {/* Book sidebar */}
-      <div className="w-56 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex flex-col shrink-0">
-        <div className="p-3 border-b border-slate-100 dark:border-slate-800">
-          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">Books</p>
-          <div className="space-y-1">
-            {books.map((book) => (
-              <div
-                key={book.id}
-                className={`group flex items-start gap-1 rounded-lg transition-colors ${
-                  activeBookId === book.id ? "bg-brand-50 dark:bg-brand-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-800"
+      <div className={`w-56 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex-col shrink-0 absolute inset-y-0 left-0 z-20 md:relative transform transition-transform duration-200 ease-in-out flex ${showSidebar ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+        <div className="p-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Books</p>
+          <button className="md:hidden p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" onClick={() => setShowSidebar(false)}>
+            <X size={16} />
+          </button>
+        </div>
+        <div className="space-y-1 p-3 flex-1 overflow-y-auto">
+          {books.map((book) => (
+            <div
+              key={book.id}
+              className={`group flex items-start gap-1 rounded-lg transition-colors ${
+                activeBookId === book.id ? "bg-brand-50 dark:bg-brand-900/20" : "hover:bg-slate-50 dark:hover:bg-slate-800"
+              }`}
+            >
+              <button
+                onClick={() => { setActiveBook(book.id); setActiveBookData(book); setShowSidebar(false); }}
+                className={`flex-1 min-w-0 text-left px-2.5 py-2 text-sm flex items-start gap-2 ${
+                  activeBookId === book.id ? "text-brand-700 dark:text-brand-400" : "text-slate-700 dark:text-slate-200"
                 }`}
-              >
-                <button
-                  onClick={() => { setActiveBook(book.id); setActiveBookData(book); }}
-                  className={`flex-1 min-w-0 text-left px-2.5 py-2 text-sm flex items-start gap-2 ${
-                    activeBookId === book.id ? "text-brand-700" : "text-slate-700 dark:text-slate-200"
-                  }`}
                 >
                   {book.file_type === "image"
                     ? <Image size={13} className="mt-0.5 shrink-0 text-emerald-500" />
@@ -313,7 +326,7 @@ export default function ReaderPage() {
             ))}
           </div>
         </div>
-        <div className="p-3">
+        <div className="p-3 border-t border-slate-100 dark:border-slate-800">
           <button
             onClick={() => setShowUpload(true)}
             className="w-full py-1.5 px-2 rounded-lg border border-dashed border-brand-300 dark:border-brand-700 text-brand-600 dark:text-brand-400 text-xs hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors"
@@ -344,12 +357,27 @@ export default function ReaderPage() {
             </div>
           </div>
         ) : activeBook ? (
-          <div ref={contentRef} className="flex-1 flex overflow-hidden">
-            {/* Left: viewer */}
-            <div
-              className="flex flex-col overflow-hidden min-w-0"
-              style={{ width: showPanel ? `${100 - panelWidth}%` : "100%" }}
-            >
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Mobile Header for Sidebar Toggle */}
+            <div className="md:hidden flex items-center justify-between p-2 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shrink-0">
+              <button
+                onClick={() => setShowSidebar(true)}
+                className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-sm font-medium"
+              >
+                <Menu size={18} />
+                Books
+              </button>
+              <div className="truncate text-xs font-medium text-slate-600 dark:text-slate-300 max-w-[150px]">
+                {activeBook.title}
+              </div>
+            </div>
+
+            <div ref={contentRef} className="flex-1 flex flex-col md:flex-row overflow-hidden">
+              {/* Left: viewer */}
+              <div
+                className="flex flex-col overflow-hidden min-w-0 md:h-full w-full"
+                style={{ flexBasis: showPanel ? `${100 - panelWidth}%` : "100%" }}
+              >
               {activeBook.file_type === "image" ? (
                 /* ── Image viewer ── */
                 <div className="flex flex-col h-full">
@@ -484,12 +512,12 @@ export default function ReaderPage() {
               <>
                 <div
                   onMouseDown={handleResizeDragStart}
-                  className="w-1 shrink-0 bg-slate-200 dark:bg-slate-700 hover:bg-brand-400 dark:hover:bg-brand-500 cursor-col-resize transition-colors"
+                  className="hidden md:block w-1 shrink-0 bg-slate-200 dark:bg-slate-700 hover:bg-brand-400 dark:hover:bg-brand-500 cursor-col-resize transition-colors"
                   title="Drag to resize"
                 />
                 <div
-                  className="flex flex-col overflow-hidden min-w-0"
-                  style={{ width: `${panelWidth}%` }}
+                  className="flex flex-col overflow-hidden min-w-0 md:h-full w-full border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700"
+                  style={{ flexBasis: `${panelWidth}%` }}
                 >
                   <TextPanel
                     ref={textPanelRef}
