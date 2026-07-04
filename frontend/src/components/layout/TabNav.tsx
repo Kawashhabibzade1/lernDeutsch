@@ -21,7 +21,6 @@ const tabs = [
   { href: "/writing",    label: "Writing",    icon: PenLine },
   { href: "/dashboard",  label: "Dashboard",  icon: BarChart2 },
   { href: "/settings",   label: "Settings",   icon: Settings },
-  { href: "/contact",    label: "Contact",    icon: User },
 ];
 
 type BackendStatus = "online" | "offline" | "checking";
