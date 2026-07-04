@@ -138,31 +138,10 @@ def delete_gemini_key():
 
 @router.get("/backup")
 def download_backup():
-    from database import DB_PATH
-    if not os.path.isfile(DB_PATH):
-        raise HTTPException(404, "Database not found")
-    return FileResponse(
-        DB_PATH,
-        media_type="application/octet-stream",
-        filename="deutschpath_backup.db",
-    )
+    raise HTTPException(501, "Cloud backups are managed automatically by Supabase")
 
 
 @router.post("/restore")
 async def restore_backup(file: UploadFile = File(...)):
-    from database import DB_PATH, engine
-    content = await file.read()
-    if not content.startswith(b"SQLite format 3"):
-        raise HTTPException(400, "Not a valid SQLite database file")
-    # Write to a temp file first, then atomically replace
-    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".db")
-    try:
-        with os.fdopen(tmp_fd, "wb") as f:
-            f.write(content)
-        engine.dispose()
-        shutil.move(tmp_path, DB_PATH)
-    except Exception:
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
-        raise HTTPException(500, "Failed to restore database")
-    return {"ok": True}
+    raise HTTPException(501, "Database restoration is managed via the Supabase dashboard")
+

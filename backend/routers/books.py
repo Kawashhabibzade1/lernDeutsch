@@ -23,6 +23,45 @@ IMAGE_MIMES = {
     ".webp": "image/webp",
 }
 
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase = None
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        from supabase import create_client
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        print("Warning: Supabase client init failed:", e)
+
+def get_book_bytes(book: Book) -> bytes:
+    if supabase and book.storage_path.startswith("books/"):
+        return supabase.storage.from_("books").download(book.storage_path.replace("books/", ""))
+    with open(book.storage_path, "rb") as f:
+        return f.read()
+
+def save_book_bytes(path: str, data: bytes):
+    if supabase and path.startswith("books/"):
+        # Overwrite if exists
+        try:
+            supabase.storage.from_("books").remove([path.replace("books/", "")])
+        except:
+            pass
+        supabase.storage.from_("books").upload(path.replace("books/", ""), data)
+    else:
+        with open(path, "wb") as f:
+            f.write(data)
+
+def delete_book_bytes(path: str):
+    if supabase and path.startswith("books/"):
+        try:
+            supabase.storage.from_("books").remove([path.replace("books/", "")])
+        except:
+            pass
+    else:
+        if os.path.exists(path):
+            os.remove(path)
+
+
 
 @router.post("/upload")
 async def upload_book(user_id: str, title: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
@@ -47,12 +86,15 @@ async def upload_book(user_id: str, title: str, file: UploadFile = File(...), db
         file_type = "pdf"
 
     book_id = str(uuid.uuid4())
-    user_dir = os.path.join(UPLOADS_DIR, user_id)
-    os.makedirs(user_dir, exist_ok=True)
-    storage_path = os.path.join(user_dir, f"{book_id}{ext}")
+    
+    if supabase:
+        storage_path = f"books/{user_id}/{book_id}{ext}"
+    else:
+        user_dir = os.path.join(UPLOADS_DIR, user_id)
+        os.makedirs(user_dir, exist_ok=True)
+        storage_path = os.path.join(user_dir, f"{book_id}{ext}")
 
-    with open(storage_path, "wb") as f:
-        f.write(file_bytes)
+    save_book_bytes(storage_path, file_bytes)
 
     book = Book(
         id=book_id,
@@ -84,8 +126,7 @@ def get_book_pages(book_id: str, user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(404, "Book not found")
     if (book.file_type or "pdf") == "image":
         return {"book": _book_dict(book), "pages": []}
-    with open(book.storage_path, "rb") as f:
-        file_bytes = f.read()
+    file_bytes = get_book_bytes(book)
     pages = extract_pages(file_bytes)
     return {"book": _book_dict(book), "pages": pages}
 
@@ -97,8 +138,7 @@ async def get_page_text_endpoint(book_id: str, page_num: int, user_id: str, db: 
     if not book:
         raise HTTPException(404, "Book not found")
 
-    with open(book.storage_path, "rb") as f:
-        file_bytes = f.read()
+    file_bytes = get_book_bytes(book)
 
     file_type = book.file_type or "pdf"
 
@@ -131,7 +171,15 @@ async def get_page_text_endpoint(book_id: str, page_num: int, user_id: str, db: 
 @router.get("/{book_id}/file")
 def serve_book_file(book_id: str, user_id: str, db: Session = Depends(get_db)):
     book = db.query(Book).filter(Book.id == book_id, Book.user_id == user_id).first()
-    if not book or not os.path.exists(book.storage_path):
+    if not book:
+        raise HTTPException(404, "Book file not found")
+        
+    if supabase and book.storage_path.startswith("books/"):
+        public_url = supabase.storage.from_("books").get_public_url(book.storage_path.replace("books/", ""))
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(public_url)
+        
+    if not os.path.exists(book.storage_path):
         raise HTTPException(404, "Book file not found")
     ext = os.path.splitext(book.storage_path)[1].lower()
     media_type = IMAGE_MIMES.get(ext, "application/pdf")
@@ -143,8 +191,7 @@ def delete_book(book_id: str, user_id: str, db: Session = Depends(get_db)):
     book = db.query(Book).filter(Book.id == book_id, Book.user_id == user_id).first()
     if not book:
         raise HTTPException(404, "Book not found")
-    if os.path.exists(book.storage_path):
-        os.remove(book.storage_path)
+    delete_book_bytes(book.storage_path)
     from models import PageContext
     db.query(PageContext).filter(PageContext.book_id == book_id).delete()
     db.delete(book)
@@ -166,8 +213,7 @@ async def overwrite_book_file(
     if (book.file_type or "pdf") != "pdf":
         raise HTTPException(400, "Only PDF books can be overwritten")
     content = await file.read()
-    with open(book.storage_path, "wb") as f:
-        f.write(content)
+    save_book_bytes(book.storage_path, content)
     return {"ok": True}
 
 
@@ -188,7 +234,9 @@ async def ocr_region(
         raise HTTPException(404, "Book not found")
     if (book.file_type or "pdf") != "image":
         raise HTTPException(400, "Only image books support region OCR")
-    with PILImage.open(book.storage_path) as _raw:
+    
+    file_bytes = get_book_bytes(book)
+    with PILImage.open(io.BytesIO(file_bytes)) as _raw:
         img = ImageOps.exif_transpose(_raw)  # honour phone/camera rotation tag
         iw, ih = img.size
         left = max(0, int(x * iw))
@@ -240,15 +288,14 @@ async def ocr_regions_batch(
 
     # Render the full page once at high resolution so Gemini gets surrounding
     # context for each region (no crop-edge ambiguity, no hallucination).
+    file_bytes = get_book_bytes(book)
     if file_type == "image":
-        with PILImage.open(book.storage_path) as raw:
+        with PILImage.open(io.BytesIO(file_bytes)) as raw:
             oriented = ImageOps.exif_transpose(raw).convert("RGB")
         buf = io.BytesIO()
         oriented.save(buf, format="PNG")
         full_page_bytes = buf.getvalue()
     else:
-        with open(book.storage_path, "rb") as f:
-            file_bytes = f.read()
         if page_num < 1 or page_num > book.total_pages:
             raise HTTPException(400, "Invalid page number")
         import pdfplumber
@@ -285,13 +332,13 @@ async def analyze_page(
     book = db.query(Book).filter(Book.id == book_id, Book.user_id == user_id).first()
     if not book:
         raise HTTPException(404, "Book not found")
-    with open(book.storage_path, "rb") as f:
-        file_bytes = f.read()
+    
+    file_bytes = get_book_bytes(book)
     file_type = book.file_type or "pdf"
     if file_type == "image":
         from PIL import Image as PILImage, ImageOps
         import io as _io
-        with PILImage.open(book.storage_path) as _raw:
+        with PILImage.open(_io.BytesIO(file_bytes)) as _raw:
             oriented = ImageOps.exif_transpose(_raw)
             buf = _io.BytesIO()
             oriented.save(buf, format="PNG")
@@ -333,8 +380,7 @@ async def read_context(
         raise HTTPException(404, "Book not found")
 
     file_type = book.file_type or "pdf"
-    with open(book.storage_path, "rb") as f:
-        file_bytes = f.read()
+    file_bytes = get_book_bytes(book)
 
     if file_type == "image":
         ext = os.path.splitext(book.storage_path)[1].lower()
@@ -427,8 +473,7 @@ async def reader_chat(
     else:
         page_context = None
         file_type = book.file_type or "pdf"
-        with open(book.storage_path, "rb") as f:
-            file_bytes = f.read()
+        file_bytes = get_book_bytes(book)
         if file_type == "image":
             ext = os.path.splitext(book.storage_path)[1].lower()
             mime = IMAGE_MIMES.get(ext, "image/jpeg")
