@@ -94,62 +94,87 @@ export function TabNav() {
       {pendingHref && (
         <ConfirmLeaveDialog onConfirm={handleConfirm} onCancel={() => setPendingHref(null)} />
       )}
-      <nav className="fixed top-0 inset-x-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-50 flex items-center px-4 gap-1 transition-colors">
+      <header className="fixed top-0 inset-x-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-50 flex flex-col transition-colors">
+        
+        {/* Top row: Brand + Desktop Tabs + Actions */}
+        <div className="flex items-center justify-between h-14 md:h-16 px-4">
+          
+          {/* Brand + status dot */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-slate-900 via-red-600 to-yellow-500 dark:from-slate-100 dark:via-red-400 dark:to-yellow-400 bg-clip-text text-transparent select-none">
+              DeutschPath
+            </span>
+            <span
+              className={clsx("w-2 h-2 rounded-full shrink-0", statusDot[backendStatus])}
+              title={statusLabel[backendStatus]}
+            />
+          </div>
 
-        {/* Brand + status dot */}
-        <div className="flex items-center gap-2 mr-2 md:mr-4 shrink-0">
-          <span className="hidden sm:inline font-bold text-lg tracking-tight bg-gradient-to-r from-slate-900 via-red-600 to-yellow-500 dark:from-slate-100 dark:via-red-400 dark:to-yellow-400 bg-clip-text text-transparent select-none">
-            DeutschPath
-          </span>
-          <span className="sm:hidden font-bold text-base tracking-tight bg-gradient-to-r from-slate-900 via-red-600 to-yellow-500 dark:from-slate-100 dark:via-red-400 dark:to-yellow-400 bg-clip-text text-transparent select-none">
-            DP
-          </span>
-          <span
-            className={clsx("w-2 h-2 rounded-full shrink-0", statusDot[backendStatus])}
-            title={statusLabel[backendStatus]}
-          />
+          {/* Desktop Tab links (hidden on mobile) */}
+          <div className="hidden md:flex gap-1 overflow-x-auto flex-1 mx-6 justify-center">
+            {tabs.map(({ href, label, icon: Icon }) => {
+              const active = pathname.startsWith(href);
+              return (
+                <button
+                  key={href}
+                  onClick={() => navigate(href)}
+                  className={clsx(
+                    "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
+                    active
+                      ? "bg-brand-600 text-white"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  )}
+                >
+                  <Icon size={16} />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Theme toggle & Turn Off */}
+          <div className="flex items-center gap-1 shrink-0 ml-auto md:ml-0">
+            <button
+              onClick={toggle}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="p-2 rounded-lg text-slate-400 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <button
+              onClick={() => setShowShutdownDialog(true)}
+              title="Turn off DeutschPath"
+              className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+            >
+              <Power size={16} />
+            </button>
+          </div>
         </div>
 
-        {/* Tab links */}
-        <div className="flex gap-1 overflow-x-auto flex-1">
-          {tabs.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href);
-            return (
-              <button
-                key={href}
-                onClick={() => navigate(href)}
-                className={clsx(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
-                  active
-                    ? "bg-brand-600 text-white"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                )}
-              >
-                <Icon size={16} />
-                <span className="hidden md:inline">{label}</span>
-              </button>
-            );
-          })}
+        {/* Bottom row: Mobile Tab links (hidden on desktop) */}
+        <div className="md:hidden flex h-12 items-center overflow-x-auto px-2 border-t border-slate-100 dark:border-slate-800/50 scrollbar-hide">
+          <div className="flex gap-1 min-w-max">
+            {tabs.map(({ href, label, icon: Icon }) => {
+              const active = pathname.startsWith(href);
+              return (
+                <button
+                  key={href}
+                  onClick={() => navigate(href)}
+                  className={clsx(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+                    active
+                      ? "bg-brand-600 text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  )}
+                >
+                  <Icon size={14} />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          className="ml-2 p-2 rounded-lg text-slate-400 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
-        >
-          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
-
-        {/* Turn Off button */}
-        <button
-          onClick={() => setShowShutdownDialog(true)}
-          title="Turn off DeutschPath"
-          className="ml-1 p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors shrink-0"
-        >
-          <Power size={16} />
-        </button>
-      </nav>
+      </header>
 
       {/* ── Shutdown confirmation dialog ── */}
       {showShutdownDialog && (

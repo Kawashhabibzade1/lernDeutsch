@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
         <ShutdownGuard />
         <TabNav />
-        <main className="pt-16">{children}</main>
+        <main className="pt-[104px] md:pt-16">{children}</main>
         <footer className="mt-12 pb-6 text-center text-xs text-slate-400 dark:text-slate-600 px-4 space-y-1">
           <p>
             Made by{" "}
